@@ -88,8 +88,8 @@ class MoproFlutter {
     });
   }
 
-  Future<Risc0ProofOutput> generateRisc0Proof(int input) async {
-    return await MoproFlutterPlatform.instance.generateRisc0Proof(input);
+  Future<Risc0ProofOutput> generateRisc0Proof(String message) async {
+    return await MoproFlutterPlatform.instance.generateRisc0Proof(message);
   }
 
   Future<Risc0VerifyOutput> verifyRisc0Proof(Uint8List receiptBytes) async {

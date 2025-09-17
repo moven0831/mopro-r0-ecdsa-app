@@ -312,14 +312,14 @@ public class MoproFlutterPlugin: NSObject, FlutterPlugin {
       }
     case "generateRisc0Proof":
       guard let args = call.arguments as? [String: Any],
-        let input = args["input"] as? Int
+        let message = args["message"] as? String
       else {
         result(FlutterError(code: "ARGUMENT_ERROR", message: "Missing arguments", details: nil))
         return
       }
 
       do {
-        let proofResult = try risc0Prove(input: UInt32(input))
+        let proofResult = try risc0Prove(message: message)
         let resultMap: [String: Any] = [
           "receipt": proofResult.receipt,
         ]
@@ -342,7 +342,7 @@ public class MoproFlutterPlugin: NSObject, FlutterPlugin {
         let verifyResult = try risc0Verify(receiptBytes: receiptBytes.data)
         let resultMap: [String: Any] = [
           "isValid": verifyResult.isValid,
-          "outputValue": verifyResult.outputValue,
+          "verifiedMessage": verifyResult.verifiedMessage,
         ]
         result(resultMap)
       } catch {

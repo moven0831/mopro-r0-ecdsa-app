@@ -29,13 +29,13 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   late Animation<double> _verifyButtonScale;
   late Animation<double> _resultsFade;
 
-  // Controller for RISC0 input
-  final TextEditingController _controllerRisc0Input = TextEditingController();
+  // Controller for RISC0 message input
+  final TextEditingController _controllerRisc0Message = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _controllerRisc0Input.text = "42";
+    _controllerRisc0Message.text = "Hello, ECDSA!";
 
     // Initialize animation controllers
     _proveButtonController = AnimationController(
@@ -65,7 +65,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _controllerRisc0Input.dispose();
+    _controllerRisc0Message.dispose();
     _proveButtonController.dispose();
     _verifyButtonController.dispose();
     _resultsFadeController.dispose();
@@ -79,7 +79,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Mopro RISC0 Example App'),
+          title: const Text('Mopro RISC0 ECDSA App'),
         ),
         body: SingleChildScrollView(
           child: Column(
@@ -105,12 +105,14 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: TextFormField(
-                  controller: _controllerRisc0Input,
+                  controller: _controllerRisc0Message,
                   decoration: const InputDecoration(
-                    labelText: "Input value (u32)",
-                    hintText: "For example, 42",
+                    labelText: "Message to sign and verify",
+                    hintText: "Enter any text message",
                   ),
-                  keyboardType: TextInputType.number,
+                  keyboardType: TextInputType.text,
+                  maxLines: 3,
+                  minLines: 1,
                 ),
               ),
               Row(
@@ -127,7 +129,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
                             width: 160,
                             height: 48,
                             child: OutlinedButton(
-                              onPressed: (_controllerRisc0Input.text.isEmpty || isProving || isVerifying)
+                              onPressed: (_controllerRisc0Message.text.trim().isEmpty || isProving || isVerifying)
                                 ? null
                                 : () async {
                                   // Button press animation - complete before changing state
@@ -146,22 +148,16 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
                                   FocusManager.instance.primaryFocus?.unfocus();
                                   Risc0ProofOutput? risc0ProofResult;
                                   try {
-                                    final inputValue = int.parse(_controllerRisc0Input.text);
-                                    if (inputValue < 0 || inputValue > 4294967295) {
-                                      throw Exception("Input must be a valid u32 (0 to 4294967295)");
+                                    final message = _controllerRisc0Message.text.trim();
+                                    if (message.isEmpty) {
+                                      throw Exception("Message cannot be empty");
                                     }
-                                    risc0ProofResult = await _moproFlutterPlugin.generateRisc0Proof(inputValue);
+                                    risc0ProofResult = await _moproFlutterPlugin.generateRisc0Proof(message);
                                   } on Exception catch (e) {
                                     print("Error: $e");
                                     risc0ProofResult = null;
                                     setState(() {
                                       _error = e;
-                                    });
-                                  } on FormatException catch (e) {
-                                    print("Error: $e");
-                                    risc0ProofResult = null;
-                                    setState(() {
-                                      _error = Exception("Invalid input format. Please enter a valid number.");
                                     });
                                   }
 
@@ -288,7 +284,20 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
                               const SizedBox(height: 16),
                               Text('Verification: ${_risc0VerifyResult!.isValid ? "PASSED" : "FAILED"}'),
                               const SizedBox(height: 4),
-                              Text('Output value: ${_risc0VerifyResult!.outputValue}'),
+                              const Text('Verified Message:', style: TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: Text(
+                                  _risc0VerifyResult!.verifiedMessage,
+                                  style: const TextStyle(fontFamily: 'monospace'),
+                                ),
+                              ),
                             ],
                           ],
                         ),

@@ -59,7 +59,7 @@ abstract class MoproFlutterPlatform extends PlatformInterface {
     throw UnimplementedError('getNoirVerificationKey() has not been implemented.');
   }
 
-  Future<Risc0ProofOutput> generateRisc0Proof(int input) {
+  Future<Risc0ProofOutput> generateRisc0Proof(String message) {
     throw UnimplementedError('generateRisc0Proof() has not been implemented.');
   }
 

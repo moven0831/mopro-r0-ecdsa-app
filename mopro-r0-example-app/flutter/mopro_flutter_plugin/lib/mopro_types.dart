@@ -117,21 +117,21 @@ class Risc0ProofOutput {
 
 class Risc0VerifyOutput {
   final bool isValid;
-  final int outputValue;
+  final String verifiedMessage;
 
-  Risc0VerifyOutput(this.isValid, this.outputValue);
+  Risc0VerifyOutput(this.isValid, this.verifiedMessage);
 
   factory Risc0VerifyOutput.fromMap(Map<Object?, Object?> verifyResult) {
     return Risc0VerifyOutput(
-        verifyResult["isValid"] as bool, verifyResult["outputValue"] as int);
+        verifyResult["isValid"] as bool, verifyResult["verifiedMessage"] as String);
   }
 
   Map<String, dynamic> toMap() {
-    return {"isValid": isValid, "outputValue": outputValue};
+    return {"isValid": isValid, "verifiedMessage": verifiedMessage};
   }
 
   @override
   String toString() {
-    return "Risc0VerifyOutput(isValid: $isValid, outputValue: $outputValue)";
+    return "Risc0VerifyOutput(isValid: $isValid, verifiedMessage: $verifiedMessage)";
   }
 }

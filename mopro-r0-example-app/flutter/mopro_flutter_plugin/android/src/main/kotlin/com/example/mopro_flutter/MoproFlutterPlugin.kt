@@ -6,7 +6,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 
-import uniffi.MoproR0ExampleApp.*
+import uniffi.mopro.*
 
 import io.flutter.plugin.common.StandardMethodCodec
 
@@ -314,14 +314,14 @@ class MoproFlutterPlugin : FlutterPlugin, MethodCallHandler {
             result.success(res)
 
         } else if (call.method== "generateRisc0Proof") {
-            val input = call.argument<Int>("input") ?: return result.error(
+            val message = call.argument<String>("message") ?: return result.error(
                 "ARGUMENT_ERROR",
-                "Missing input",
+                "Missing message",
                 null
             )
 
             try {
-                val res = risc0Prove(input.toUInt())
+                val res = risc0Prove(message)
                 val resultMap = mapOf(
                     "receipt" to res.receipt
                 )
@@ -341,7 +341,7 @@ class MoproFlutterPlugin : FlutterPlugin, MethodCallHandler {
                 val res = risc0Verify(receiptBytes)
                 val resultMap = mapOf(
                     "isValid" to res.isValid,
-                    "outputValue" to res.outputValue.toInt()
+                    "verifiedMessage" to res.verifiedMessage
                 )
                 result.success(resultMap)
             } catch (e: Exception) {

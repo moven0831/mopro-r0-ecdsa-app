@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package uniffi.MoproR0ExampleApp
+package uniffi.mopro
 
 // Common helper code.
 //
@@ -857,7 +857,7 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
 
     fun uniffi_mopro_r0_example_app_fn_func_risc0_prove(
-        `input`: Int,
+        `message`: RustBuffer.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
@@ -1131,7 +1131,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_mopro_r0_example_app_checksum_func_get_noir_verification_key() != 28810.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_mopro_r0_example_app_checksum_func_risc0_prove() != 57777.toShort()) {
+    if (lib.uniffi_mopro_r0_example_app_checksum_func_risc0_prove() != 42798.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mopro_r0_example_app_checksum_func_risc0_verify() != 34311.toShort()) {
@@ -1200,26 +1200,6 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
  * @suppress
  * */
 object NoPointer
-
-/**
- * @suppress
- */
-public object FfiConverterUInt : FfiConverter<UInt, Int> {
-    override fun lift(value: Int): UInt = value.toUInt()
-
-    override fun read(buf: ByteBuffer): UInt = lift(buf.getInt())
-
-    override fun lower(value: UInt): Int = value.toInt()
-
-    override fun allocationSize(value: UInt) = 4UL
-
-    override fun write(
-        value: UInt,
-        buf: ByteBuffer,
-    ) {
-        buf.putInt(value.toInt())
-    }
-}
 
 /**
  * @suppress
@@ -1533,7 +1513,7 @@ public object FfiConverterTypeRisc0ProofOutput : FfiConverterRustBuffer<Risc0Pro
 
 data class Risc0VerifyOutput(
     var `isValid`: kotlin.Boolean,
-    var `outputValue`: kotlin.UInt,
+    var `verifiedMessage`: kotlin.String,
 ) {
     companion object
 }
@@ -1545,13 +1525,13 @@ public object FfiConverterTypeRisc0VerifyOutput : FfiConverterRustBuffer<Risc0Ve
     override fun read(buf: ByteBuffer): Risc0VerifyOutput =
         Risc0VerifyOutput(
             FfiConverterBoolean.read(buf),
-            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
         )
 
     override fun allocationSize(value: Risc0VerifyOutput) =
         (
             FfiConverterBoolean.allocationSize(value.`isValid`) +
-                FfiConverterUInt.allocationSize(value.`outputValue`)
+                FfiConverterString.allocationSize(value.`verifiedMessage`)
         )
 
     override fun write(
@@ -1559,7 +1539,7 @@ public object FfiConverterTypeRisc0VerifyOutput : FfiConverterRustBuffer<Risc0Ve
         buf: ByteBuffer,
     ) {
         FfiConverterBoolean.write(value.`isValid`, buf)
-        FfiConverterUInt.write(value.`outputValue`, buf)
+        FfiConverterString.write(value.`verifiedMessage`, buf)
     }
 }
 
@@ -1973,10 +1953,10 @@ fun `getNoirVerificationKey`(
     )
 
 @Throws(Risc0Exception::class)
-fun `risc0Prove`(`input`: kotlin.UInt): Risc0ProofOutput =
+fun `risc0Prove`(`message`: kotlin.String): Risc0ProofOutput =
     FfiConverterTypeRisc0ProofOutput.lift(
         uniffiRustCallWithError(Risc0Exception) { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_r0_example_app_fn_func_risc0_prove(FfiConverterUInt.lower(`input`), _status)
+            UniffiLib.INSTANCE.uniffi_mopro_r0_example_app_fn_func_risc0_prove(FfiConverterString.lower(`message`), _status)
         },
     )
 

@@ -111,10 +111,10 @@ class MethodChannelMoproFlutter extends MoproFlutterPlatform {
   }
 
   @override
-  Future<Risc0ProofOutput> generateRisc0Proof(int input) async {
+  Future<Risc0ProofOutput> generateRisc0Proof(String message) async {
     final proofResult = await methodChannel
         .invokeMethod<Map<Object?, Object?>>('generateRisc0Proof', {
-      'input': input,
+      'message': message,
     });
 
     if (proofResult == null) {

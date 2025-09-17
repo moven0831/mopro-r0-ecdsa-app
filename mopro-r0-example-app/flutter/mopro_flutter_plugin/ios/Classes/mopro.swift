@@ -7,8 +7,8 @@ import Foundation
 // Depending on the consumer's build setup, the low-level FFI code
 // might be in a separate module, or it might be compiled inline into
 // this module. This is a bit of light hackery to work with both.
-#if canImport(MoproR0ExampleApp)
-import MoproR0ExampleApp
+#if canImport(mopro_r0_example_appFFI)
+import mopro_r0_example_appFFI
 #endif
 
 fileprivate extension RustBuffer {
@@ -396,22 +396,6 @@ fileprivate final class UniffiHandleMap<T>: @unchecked Sendable {
 
 // Public interface members begin here.
 
-
-#if swift(>=5.8)
-@_documentation(visibility: private)
-#endif
-fileprivate struct FfiConverterUInt32: FfiConverterPrimitive {
-    typealias FfiType = UInt32
-    typealias SwiftType = UInt32
-
-    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UInt32 {
-        return try lift(readInt(&buf))
-    }
-
-    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
-        writeInt(&buf, lower(value))
-    }
-}
 
 #if swift(>=5.8)
 @_documentation(visibility: private)
@@ -951,13 +935,13 @@ public func FfiConverterTypeRisc0ProofOutput_lower(_ value: Risc0ProofOutput) ->
 
 public struct Risc0VerifyOutput {
     public var isValid: Bool
-    public var outputValue: UInt32
+    public var verifiedMessage: String
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(isValid: Bool, outputValue: UInt32) {
+    public init(isValid: Bool, verifiedMessage: String) {
         self.isValid = isValid
-        self.outputValue = outputValue
+        self.verifiedMessage = verifiedMessage
     }
 }
 
@@ -971,7 +955,7 @@ extension Risc0VerifyOutput: Equatable, Hashable {
         if lhs.isValid != rhs.isValid {
             return false
         }
-        if lhs.outputValue != rhs.outputValue {
+        if lhs.verifiedMessage != rhs.verifiedMessage {
             return false
         }
         return true
@@ -979,7 +963,7 @@ extension Risc0VerifyOutput: Equatable, Hashable {
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(isValid)
-        hasher.combine(outputValue)
+        hasher.combine(verifiedMessage)
     }
 }
 
@@ -993,13 +977,13 @@ public struct FfiConverterTypeRisc0VerifyOutput: FfiConverterRustBuffer {
         return
             try Risc0VerifyOutput(
                 isValid: FfiConverterBool.read(from: &buf), 
-                outputValue: FfiConverterUInt32.read(from: &buf)
+                verifiedMessage: FfiConverterString.read(from: &buf)
         )
     }
 
     public static func write(_ value: Risc0VerifyOutput, into buf: inout [UInt8]) {
         FfiConverterBool.write(value.isValid, into: &buf)
-        FfiConverterUInt32.write(value.outputValue, into: &buf)
+        FfiConverterString.write(value.verifiedMessage, into: &buf)
     }
 }
 
@@ -1395,10 +1379,10 @@ public func getNoirVerificationKey(circuitPath: String, srsPath: String?, onChai
     )
 })
 }
-public func risc0Prove(input: UInt32)throws  -> Risc0ProofOutput  {
+public func risc0Prove(message: String)throws  -> Risc0ProofOutput  {
     return try  FfiConverterTypeRisc0ProofOutput_lift(try rustCallWithError(FfiConverterTypeRisc0Error_lift) {
     uniffi_mopro_r0_example_app_fn_func_risc0_prove(
-        FfiConverterUInt32.lower(input),$0
+        FfiConverterString.lower(message),$0
     )
 })
 }
@@ -1467,7 +1451,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_mopro_r0_example_app_checksum_func_get_noir_verification_key() != 28810) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_mopro_r0_example_app_checksum_func_risc0_prove() != 57777) {
+    if (uniffi_mopro_r0_example_app_checksum_func_risc0_prove() != 42798) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_mopro_r0_example_app_checksum_func_risc0_verify() != 34311) {
