@@ -19,8 +19,13 @@
 // Allow unexpected cfg for the full file
 #![allow(unexpected_cfgs)]
 
-use methods::{RISC0_CIRCUIT_ELF, RISC0_CIRCUIT_ID};
+use ecdsa_methods::{ECDSA_VERIFY_ELF, ECDSA_VERIFY_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv, Receipt};
+use p256::{
+    EncodedPoint,
+    ecdsa::{Signature, SigningKey, VerifyingKey, signature::Signer},
+};
+use rand_core::OsRng;
 
 mopro_ffi::app!();
 
@@ -44,12 +49,22 @@ pub struct Risc0ProofOutput {
 #[derive(uniffi::Record, Clone)]
 pub struct Risc0VerifyOutput {
     pub is_valid: bool,
-    pub output_value: u32,
+    pub verified_message: String,
 }
 
 #[uniffi::export]
-pub fn risc0_prove(input: u32) -> Result<Risc0ProofOutput, Risc0Error> {
-    // Create executor environment with input
+pub fn risc0_prove(message: String) -> Result<Risc0ProofOutput, Risc0Error> {
+    // Generate a random secp256r1 keypair and sign the message
+    let signing_key = SigningKey::random(&mut OsRng);
+    let verifying_key = signing_key.verifying_key();
+
+    let message_bytes = message.as_bytes();
+    let signature: Signature = signing_key.sign(message_bytes);
+
+    // Create input for zkVM (public key, message, signature)
+    let input = (verifying_key.to_encoded_point(true), message_bytes, signature);
+
+    // Create executor environment with ECDSA input
     let env = ExecutorEnv::builder()
         .write(&input)
         .map_err(|e| Risc0Error::ProveError(format!("Failed to write input: {}", e)))?
@@ -63,7 +78,7 @@ pub fn risc0_prove(input: u32) -> Result<Risc0ProofOutput, Risc0Error> {
 
     // Generate proof
     let prove_info = prover
-        .prove(env, RISC0_CIRCUIT_ELF)
+        .prove(env, ECDSA_VERIFY_ELF)
         .map_err(|e| Risc0Error::ProveError(format!("Failed to generate proof: {}", e)))?;
 
     // Extract receipt
@@ -86,18 +101,21 @@ pub fn risc0_verify(receipt_bytes: Vec<u8>) -> Result<Risc0VerifyOutput, Risc0Er
 
     // Verify the receipt
     receipt
-        .verify(RISC0_CIRCUIT_ID)
+        .verify(ECDSA_VERIFY_ID)
         .map_err(|e| Risc0Error::VerifyError(format!("Failed to verify receipt: {}", e)))?;
 
-    // Extract output from journal
-    let output_value: u32 = receipt
+    // Extract output from journal (verifying key and message)
+    let (receipt_verifying_key, receipt_message): (EncodedPoint, Vec<u8>) = receipt
         .journal
         .decode()
         .map_err(|e| Risc0Error::DecodeError(format!("Failed to decode journal: {}", e)))?;
 
+    let verified_message = String::from_utf8(receipt_message)
+        .map_err(|e| Risc0Error::DecodeError(format!("Failed to convert message to string: {}", e)))?;
+
     Ok(Risc0VerifyOutput {
         is_valid: true,
-        output_value,
+        verified_message,
     })
 }
 
@@ -107,11 +125,11 @@ mod tests {
 
     #[test]
     fn test_risc0_prove_success() {
-        // Test proving with a simple u32 input
-        let input = 42u32;
-        let result = risc0_prove(input);
+        // Test proving with a simple message
+        let message = "Hello, ECDSA!".to_string();
+        let result = risc0_prove(message);
 
-        assert!(result.is_ok(), "Proving should succeed for valid input");
+        assert!(result.is_ok(), "Proving should succeed for valid message");
 
         let proof_output = result.unwrap();
         assert!(
@@ -123,8 +141,8 @@ mod tests {
     #[test]
     fn test_risc0_verify_success() {
         // First generate a proof
-        let input = 123u32;
-        let prove_result = risc0_prove(input);
+        let message = "Test message for verification".to_string();
+        let prove_result = risc0_prove(message.clone());
         assert!(prove_result.is_ok(), "Proving should succeed");
 
         let proof_output = prove_result.unwrap();
@@ -139,23 +157,31 @@ mod tests {
         let verify_output = verify_result.unwrap();
         assert!(verify_output.is_valid, "Proof should be valid");
         assert_eq!(
-            verify_output.output_value, input,
-            "Output value should match input"
+            verify_output.verified_message, message,
+            "Verified message should match original message"
         );
     }
 
     #[test]
     fn test_prove_verify_roundtrip() {
-        // Test the complete prove -> verify workflow with multiple inputs
-        let test_inputs = [0u32, 42u32, 100u32, 1000u32, u32::MAX];
+        // Test the complete prove -> verify workflow with multiple messages
+        let test_messages = [
+            "Simple message",
+            "Message with numbers: 12345",
+            "Special chars: !@#$%^&*()",
+            "Unicode: 你好世界",
+            ""
+        ];
 
-        for &input in &test_inputs {
+        for &message in &test_messages {
+            let message_str = message.to_string();
+
             // Generate proof
-            let prove_result = risc0_prove(input);
+            let prove_result = risc0_prove(message_str.clone());
             assert!(
                 prove_result.is_ok(),
-                "Proving should succeed for input: {}",
-                input
+                "Proving should succeed for message: '{}'",
+                message
             );
 
             let proof_output = prove_result.unwrap();
@@ -164,20 +190,20 @@ mod tests {
             let verify_result = risc0_verify(proof_output.receipt);
             assert!(
                 verify_result.is_ok(),
-                "Verification should succeed for input: {}",
-                input
+                "Verification should succeed for message: '{}'",
+                message
             );
 
             let verify_output = verify_result.unwrap();
             assert!(
                 verify_output.is_valid,
-                "Proof should be valid for input: {}",
-                input
+                "Proof should be valid for message: '{}'",
+                message
             );
             assert_eq!(
-                verify_output.output_value, input,
-                "Output should match input: {}",
-                input
+                verify_output.verified_message, message_str,
+                "Verified message should match original for: '{}'",
+                message
             );
         }
     }

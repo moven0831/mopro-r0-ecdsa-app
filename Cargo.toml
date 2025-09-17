@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["mopro-r0-example-app", "risc0-circuit"]
-exclude = ["risc0-circuit/guest"]
+exclude = ["risc0-circuit/methods/guest"]
 
 [workspace.package]
 version = "0.1.0"
