@@ -1,27 +1,29 @@
-# RISC0 + Mopro Example App
+# RISC0 ECDSA + Mopro Example App
 
-Minimal Flutter template for RISC0 zkVM proof generation and verification on mobile devices using Mopro.
+Flutter app demonstrating RISC0 zkVM ECDSA signature verification with zero-knowledge proofs on mobile devices using Mopro.
+
+This app generates and verifies zero-knowledge proofs that validate ECDSA signature verification without revealing the private key or signature details.
 
 ## Architecture
 
 ```
-├── risc0-circuit/          # RISC0 zkVM circuit and host code
-│   ├── src/main.rs         # Host program (proof generation)
-│   └── methods/guest/      # Guest program (runs in zkVM)
+├── risc0-circuit/          # RISC0 zkVM ECDSA circuit
+│   ├── src/main.rs         # Host program (ECDSA proof generation)
+│   └── methods/guest/      # Guest program (ECDSA verification in zkVM)
 ├── mopro-r0-example-app/   # Mopro FFI bindings
-│   ├── src/lib.rs          # UniFFI exports for mobile
-│   └── flutter/            # Flutter app (cross platforms)
+│   ├── src/lib.rs          # UniFFI exports for mobile (ECDSA functions)
+│   └── flutter/            # Flutter app with ECDSA UI
 └── Cargo.toml              # Rust workspace configuration
 ```
 
 ## App Demo
-Mopro Risc0 Example App demo running live on Pixel 10 Pro. 
+Mopro RISC0 ECDSA App demo running live on Pixel 10 Pro
 
 <div align="center">
 
-|  |  |
+|  Message Input & Proof Generation |  ECDSA Proof Verification  |
 |:-------------------------:|:---------------------:|
-| <img src="./assets/img/r0-example-1.jpg" alt="Noir Wallet Connect" width="280"/> | <img src="./assets/img/r0-example-2.jpg" alt="Noir On-Chain Verification" width="280"/> |
+| <img src="./assets/img/pixel-10-pro-1.jpg" alt="ECDSA Message Input" width="280"/> | <img src="./assets/img/pixel-10-pro-2.jpg" alt="ECDSA Proof Verification" width="280"/> |
 
 </div>
 
@@ -46,8 +48,8 @@ flutter --version
 
 1. **Clone and setup**:
 ```bash
-git clone git@github.com:zkmopro/mopro-r0-example-app.git
-cd mopro-r0-example-app/mopro-r0-example-app
+# Clone this ECDSA example repository
+cd mopro-r0-ecdsa-app/mopro-r0-example-app
 ```
 
 2. **Build native bindings**:
@@ -71,32 +73,57 @@ flutter run
 
 ## Development Commands
 
-### Circuit Development
-Currently the risc0 is basic template. You can write your risc0 program in `risc0-circuit/`. More more examples, please refers to [risc0/examples](https://github.com/risc0/risc0/tree/main/examples).
+### ECDSA Circuit Development
+The RISC0 circuit implements ECDSA signature verification using secp256r1 elliptic curve cryptography. For more RISC0 examples, refer to [risc0/examples](https://github.com/risc0/risc0/tree/main/examples).
 
-**`risc0-circuit/`**: Contains a risc0 program
-- `src/main.rs`: Host code that generates proofs
-- `methods/guest/src/main.rs`: Guest code that runs inside zkVM
+**`risc0-circuit/`**: Contains ECDSA verification program
+- `src/main.rs`: Host code that generates ECDSA proofs
+- `methods/guest/src/main.rs`: Guest code that verifies ECDSA signatures in zkVM
 
 ```bash
-# Run RISC0 host program directly
+# Run RISC0 ECDSA host program directly
 cd risc0-circuit && cargo run
 
 # Run with execution logs
 RUST_LOG="[executor]=info" RISC0_DEV_MODE=1 cargo run
 ```
 
+### Key Components
+- **secp256r1 Curve**: Industry-standard elliptic curve used in many systems
+- **Random Key Generation**: Each proof uses a fresh keypair for security
+- **Message Signing**: Input messages are signed with ECDSA
+- **ZK Verification**: Proofs verify signature validity without revealing keys
+
 ### Mobile Development
-For customizing your risc0 program with Mopro, you can refer to [Mopro Docs](https://zkmopro.org/docs/setup/rust-setup#-customize-the-bindings).
+For customizing your RISC0 ECDSA program with Mopro, refer to [Mopro Docs](https://zkmopro.org/docs/setup/rust-setup#-customize-the-bindings).
 
 **`mopro-r0-example-app/`**: FFI bindings and mobile integration
-- `src/lib.rs`: Exported functions for mobile apps
-- `flutter/`: Flutter template
+- `src/lib.rs`: Exported ECDSA functions for mobile apps
+  - `risc0_prove(message: String)` - Generate ECDSA proof for message
+  - `risc0_verify(receipt: Vec<u8>)` - Verify ECDSA proof and extract message
+- `flutter/`: Flutter app with ECDSA UI
 
 ```bash
-# Run tests
-cargo test      # Rust tests
+# Run ECDSA tests
+cargo test      # Includes ECDSA prove/verify integration tests
+
+# Test different message types
+cargo test test_prove_verify_roundtrip  # Tests various message formats
 
 # Rebuild after Rust changes
 mopro build && mopro update
 ```
+
+### API Reference
+
+#### `risc0_prove(message: String) -> Result<Risc0ProofOutput, Risc0Error>`
+Generates a zero-knowledge proof that validates ECDSA signature verification for the given message.
+- **Input**: Any UTF-8 string message
+- **Output**: Serialized receipt containing the proof
+- **Process**: Generates random secp256r1 keypair, signs message, creates ZK proof
+
+#### `risc0_verify(receipt_bytes: Vec<u8>) -> Result<Risc0VerifyOutput, Risc0Error>`
+Verifies a RISC0 ECDSA proof and extracts the verified message.
+- **Input**: Serialized proof receipt bytes
+- **Output**: Verification result with original message
+- **Validation**: Confirms proof validity and extracts verified message
